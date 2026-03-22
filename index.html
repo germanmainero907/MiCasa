@@ -28,13 +28,15 @@
     
         /* Configuración del iframe para ocupar el 100% sin bordes */
         iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             border: none;
             display: block;
             opacity: 0;
-            transition: opacity 0.15s ease-out;
-            position: relative;
+            transition: opacity 0.25s ease-in-out;
             z-index: 10;
         }
         
@@ -88,20 +90,28 @@
         // Este listener intercepta la petición de navegación desde los iframes internos
         window.addEventListener('message', function (event) {
             if (event.data && event.data.type === 'NAVIGATE') {
-                const iframe = document.querySelector('iframe');
+                const currentIframe = document.querySelector('iframe:not(.removing)');
                 
                 // Actualizar la URL "fake" en el PWA sin disparar la recarga entera del navegador
                 window.history.pushState(null, '', event.data.query);
-                
-                // Mostrar spinner oscureciendo iframe
-                iframe.classList.remove('loaded');
                 
                 // Construir URL base del script asumiendo que el query trae los params correctos
                 const baseUrl = "https://script.google.com/macros/s/AKfycbyz2VYabP6abyKzvu4mEIpeeMisN1VV4FNFqH7sCMhhDA1EldzS9sh7fWRiZKXvOVk5Vw/exec";
                 const bridgeUrl = window.location.origin + window.location.pathname;
                 
-                // Forzar carga de nueva ruta
-                iframe.src = baseUrl + event.data.query + "&bridgeUrl=" + encodeURIComponent(bridgeUrl);
+                // Double iframe technique para evitar flash blanco
+                const newIframe = document.createElement('iframe');
+                newIframe.src = baseUrl + event.data.query + "&bridgeUrl=" + encodeURIComponent(bridgeUrl);
+                
+                newIframe.onload = () => {
+                    newIframe.classList.add('loaded');
+                    if (currentIframe) {
+                        currentIframe.classList.add('removing');
+                        setTimeout(() => currentIframe.remove(), 300); // Dar tiempor al fade
+                    }
+                };
+                
+                document.body.appendChild(newIframe);
             }
         });
     </script>
