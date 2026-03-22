@@ -25,14 +25,7 @@
             background-color: #f8fafc;
         }
 
-        /* Detectar si el dispositivo está en modo oscuro */
-        @media (prefers-color-scheme: dark) {
-            body {
-                /* Color oscuro bg-slate-900 u otro, según Tailwind */
-                background-color: #0f172a; 
-            }
-        }
-
+    
         /* Configuración del iframe para ocupar el 100% sin bordes */
         iframe {
             width: 100%;
@@ -67,9 +60,6 @@
             height: 48px;
             color: #0ea5e9;
             animation: spin 1s linear infinite;
-        }
-        @media (prefers-color-scheme: dark) {
-            .spinner-svg { color: #3b82f6; }
         }
 
         @keyframes spin {
@@ -114,7 +104,6 @@
                     iframe.onload = () => {
                         iframe.classList.add('loaded');
                         document.getElementById('bridge-loader').style.display = 'none';
-                        broadcastTheme();
                     };
 
                     iframe.src = url.toString();
@@ -122,18 +111,7 @@
                     console.error("Invalid iframe URL", e);
                 }
             }
-            
-            // Reaccionar a cambios ambientales
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', broadcastTheme);
         });
-        
-        function broadcastTheme() {
-            const iframe = document.querySelector('iframe');
-            if (iframe && iframe.contentWindow) {
-                const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                iframe.contentWindow.postMessage({ type: 'THEME', theme: isDark ? 'dark' : 'light' }, '*');
-            }
-        }
 
         // Este listener intercepta la petición de navegación desde los iframes internos
         window.addEventListener('message', function (event) {
