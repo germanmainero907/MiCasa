@@ -107,6 +107,12 @@
                             url.searchParams.set(key, value);
                         }
                     }
+                    
+                    iframe.onload = () => {
+                        iframe.classList.add('loaded');
+                        document.getElementById('bridge-loader').style.display = 'none';
+                    };
+
                     iframe.src = url.toString();
                 } catch (e) {
                     console.error("Invalid iframe URL", e);
@@ -114,10 +120,25 @@
             }
         });
 
-        // Este listener ya no es el canal principal ya que se hará top.location.href, pero se deja por seguridad
+        // Este listener intercepta la petición de navegación desde los iframes internos
         window.addEventListener('message', function (event) {
             if (event.data && event.data.type === 'NAVIGATE') {
-                window.location.search = event.data.query;
+                const iframe = document.querySelector('iframe');
+                const loader = document.getElementById('bridge-loader');
+                
+                // Actualizar la URL "fake" en el PWA sin disparar la recarga entera del navegador
+                window.history.pushState(null, '', event.data.query);
+                
+                // Mostrar spinner y oscurecer iframe
+                iframe.classList.remove('loaded');
+                loader.style.display = 'flex';
+                
+                // Construir URL base del script asumiendo que el query trae los params correctos
+                const baseUrl = "https://script.google.com/macros/s/AKfycbyz2VYabP6abyKzvu4mEIpeeMisN1VV4FNFqH7sCMhhDA1EldzS9sh7fWRiZKXvOVk5Vw/exec";
+                const bridgeUrl = window.location.origin + window.location.pathname;
+                
+                // Forzar carga de nueva ruta
+                iframe.src = baseUrl + event.data.query + "&bridgeUrl=" + encodeURIComponent(bridgeUrl);
             }
         });
     </script>
