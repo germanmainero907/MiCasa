@@ -12,32 +12,28 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0f172a">
     <meta name="color-scheme" content="dark">
-    <!-- PWA Icon from attached image -->
     <link rel="apple-touch-icon" href="icon.png">
 
     <title>Mi Casa App</title>
 
     <style>
-        /* Reseteo básico y aseguramiento del 100% de ocupación */
-        html,
-        body {
+        html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            /* Fondo oscuro para evitar barra blanca en iOS PWA */
             background-color: #0f172a;
             color-scheme: dark;
         }
 
-        /* Iframe empieza debajo de la barra de estado */
+        /* Iframe empieza debajo de la barra de estado, llega hasta el fondo */
         iframe {
             position: absolute;
             top: env(safe-area-inset-top);
             left: 0;
-            width: 100%;
-            height: calc(100% - env(safe-area-inset-top));
+            right: 0;
+            bottom: 0;
             border: none;
             display: block;
             opacity: 0;
@@ -62,21 +58,15 @@
             if (iframe) {
                 try {
                     const url = new URL(iframe.src);
-
                     const bridgeUrl = window.location.origin + window.location.pathname;
                     url.searchParams.set('bridgeUrl', bridgeUrl);
-
                     if (window.location.search) {
                         const params = new URLSearchParams(window.location.search);
                         for (const [key, value] of params.entries()) {
                             url.searchParams.set(key, value);
                         }
                     }
-                    
-                    iframe.onload = () => {
-                        iframe.classList.add('loaded');
-                    };
-
+                    iframe.onload = () => { iframe.classList.add('loaded'); };
                     iframe.src = url.toString();
                 } catch (e) {
                     console.error("Invalid iframe URL", e);
@@ -84,22 +74,15 @@
             }
         });
 
-        // Este listener intercepta la petición de navegación desde los iframes internos
         window.addEventListener('message', function (event) {
             if (event.data && event.data.type === 'NAVIGATE') {
                 const currentIframe = document.querySelector('iframe:not(.removing)');
-                
-                // Actualizar la URL "fake" en el PWA sin disparar la recarga entera del navegador
                 window.history.pushState(null, '', event.data.query);
-                
-                // Construir URL base del script asumiendo que el query trae los params correctos
                 const baseUrl = "https://script.google.com/macros/s/AKfycbyz2VYabP6abyKzvu4mEIpeeMisN1VV4FNFqH7sCMhhDA1EldzS9sh7fWRiZKXvOVk5Vw/exec";
                 const bridgeUrl = window.location.origin + window.location.pathname;
-                
-                // Double iframe technique para evitar flash blanco
                 const newIframe = document.createElement('iframe');
                 newIframe.src = baseUrl + event.data.query + "&bridgeUrl=" + encodeURIComponent(bridgeUrl);
-                
+                newIframe.style.cssText = "position:absolute;top:env(safe-area-inset-top);left:0;right:0;bottom:0;border:none;display:block;opacity:0;transition:opacity 0.3s ease-in-out;z-index:10;";
                 newIframe.onload = () => {
                     newIframe.classList.add('loaded');
                     if (currentIframe) {
@@ -107,7 +90,6 @@
                         setTimeout(() => currentIframe.remove(), 300);
                     }
                 };
-                
                 document.body.appendChild(newIframe);
             }
         });
