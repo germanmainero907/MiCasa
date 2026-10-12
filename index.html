@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" style="background-color: #0f172a; color-scheme: dark;">
+<html lang="es" style="background-color: #080c14; color-scheme: dark;">
 
 <head>
     <meta charset="UTF-8">
@@ -10,46 +10,62 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Mi Casa">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0f172a">
+    <!-- Mismo color de fondo de la app para que el panel superior / status bar sea uniforme -->
+    <meta name="theme-color" content="#080c14">
     <meta name="color-scheme" content="dark">
     <link rel="apple-touch-icon" href="icon.png">
 
     <title>Mi Casa App</title>
 
     <style>
-        html, body {
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
+        }
+
+        /* Ocupación total con color uniforme idéntico a la app (#080c14) */
+        html,
+        body {
             width: 100%;
             height: 100%;
+            height: -webkit-fill-available;
             overflow: hidden;
-            background-color: #0f172a;
+            background-color: #080c14;
             color-scheme: dark;
         }
 
-        /* Iframe empieza debajo de la barra de estado, llega hasta el fondo */
+        /* Iframe ocupa el 100% real de ancho y alto en iOS WebKit */
         iframe {
             position: absolute;
-            top: env(safe-area-inset-top);
+            top: env(safe-area-inset-top, 0px);
             left: 0;
-            right: 0;
-            bottom: 0;
+            width: 100%;
+            width: 100vw;
+            height: calc(100% - env(safe-area-inset-top, 0px));
+            height: -webkit-calc(100% - env(safe-area-inset-top, 0px));
             border: none;
             display: block;
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
             z-index: 10;
+            background-color: #080c14;
         }
 
         iframe.loaded {
             opacity: 1;
+        }
+
+        iframe.removing {
+            opacity: 0;
+            pointer-events: none;
         }
     </style>
 </head>
 
 <body>
     <iframe
-        src="https://script.google.com/macros/s/AKfycbyz2VYabP6abyKzvu4mEIpeeMisN1VV4FNFqH7sCMhhDA1EldzS9sh7fWRiZKXvOVk5Vw/exec"
+        src="https://script.google.com/macros/s/AKfycbyz2VYabP6abyKzvu4mEIpeeMisN1VV4FNFqH7sCMhhDA1EldzS9sh7fWRiZKXvOVk5Vw/exec?page=IndexMockup"
         title="Presupuesto Casa App"
         onload="this.classList.add('loaded')"></iframe>
     <script>
@@ -58,15 +74,23 @@
             if (iframe) {
                 try {
                     const url = new URL(iframe.src);
+
                     const bridgeUrl = window.location.origin + window.location.pathname;
                     url.searchParams.set('bridgeUrl', bridgeUrl);
+
                     if (window.location.search) {
                         const params = new URLSearchParams(window.location.search);
                         for (const [key, value] of params.entries()) {
                             url.searchParams.set(key, value);
                         }
+                    } else if (!url.searchParams.has('page')) {
+                        url.searchParams.set('page', 'IndexMockup');
                     }
-                    iframe.onload = () => { iframe.classList.add('loaded'); };
+                    
+                    iframe.onload = () => {
+                        iframe.classList.add('loaded');
+                    };
+
                     iframe.src = url.toString();
                 } catch (e) {
                     console.error("Invalid iframe URL", e);
@@ -74,15 +98,19 @@
             }
         });
 
+        // Intercepta navegación desde iframes internos sin recargar navegador
         window.addEventListener('message', function (event) {
             if (event.data && event.data.type === 'NAVIGATE') {
                 const currentIframe = document.querySelector('iframe:not(.removing)');
+                
                 window.history.pushState(null, '', event.data.query);
+                
                 const baseUrl = "https://script.google.com/macros/s/AKfycbyz2VYabP6abyKzvu4mEIpeeMisN1VV4FNFqH7sCMhhDA1EldzS9sh7fWRiZKXvOVk5Vw/exec";
                 const bridgeUrl = window.location.origin + window.location.pathname;
+                
                 const newIframe = document.createElement('iframe');
                 newIframe.src = baseUrl + event.data.query + "&bridgeUrl=" + encodeURIComponent(bridgeUrl);
-                newIframe.style.cssText = "position:absolute;top:env(safe-area-inset-top);left:0;right:0;bottom:0;border:none;display:block;opacity:0;transition:opacity 0.3s ease-in-out;z-index:10;";
+                
                 newIframe.onload = () => {
                     newIframe.classList.add('loaded');
                     if (currentIframe) {
@@ -90,10 +118,10 @@
                         setTimeout(() => currentIframe.remove(), 300);
                     }
                 };
+                
                 document.body.appendChild(newIframe);
             }
         });
     </script>
 </body>
-
 </html>
