@@ -234,6 +234,17 @@
         computeAppHeight();
         window.addEventListener('resize', computeAppHeight);
         window.addEventListener('orientationchange', () => setTimeout(computeAppHeight, 250));
+        window.addEventListener('pageshow', computeAppHeight);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                computeAppHeight();
+                const active = document.querySelector('iframe.active-frame');
+                if (active && active.contentWindow) {
+                    const sa = getSafeArea();
+                    try { active.contentWindow.postMessage({ type: 'SAFE_AREA', top: sa.top, bottom: sa.bottom }, '*'); } catch (_) {}
+                }
+            }
+        });
 
         // ---------- Progreso ----------
         function startProgress() {
