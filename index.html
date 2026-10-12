@@ -227,8 +227,8 @@
             const cs = getComputedStyle(probe);
             const top = parseFloat(cs.paddingTop) || 0;
             const rawBottom = parseFloat(cs.paddingBottom) || 0;
-            // Garantizar al menos 16px para que la barra flotante nunca toque el borde fisico
-            return { top, bottom: Math.max(rawBottom, 16) };
+            // Garantizar al menos 20px para que los textos nunca queden tapados por la barra de inicio
+            return { top, bottom: Math.max(rawBottom, 20) };
         }
 
         computeAppHeight();
