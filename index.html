@@ -43,6 +43,20 @@
             color-scheme: dark;
         }
 
+        /* Barra de desplazamiento invisible en todos los navegadores */
+        html, body, * {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar,
+        *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
+        }
+
         /* Sonda invisible para leer los safe-area insets reales */
         #safeProbe {
             position: fixed;
@@ -184,27 +198,37 @@
         const splash = document.getElementById('splash');
         const progressBar = document.getElementById('navProgress');
 
-        // ---------- Altura real de pantalla ----------
-        // En iOS standalone, 100% / 100vh / 100dvh pueden quedar cortos (dejan una franja abajo).
-        // Medimos con JS y usamos el mayor valor confiable.
+        // ---------- Altura real visible ----------
+        // Una sonda position:fixed top:0 bottom:0 mide exactamente el area que iOS deja pintar.
+        // (Forzar screen.height empujaba el iframe por debajo del borde visible y cortaba la barra.)
+        const vpProbe = document.createElement('div');
+        vpProbe.style.cssText = 'position:fixed;top:0;bottom:0;left:0;width:0;visibility:hidden;pointer-events:none;';
+        document.body.appendChild(vpProbe);
+
+        function visibleHeight() {
+            return Math.round(vpProbe.getBoundingClientRect().height) || window.innerHeight;
+        }
+
+        function physicalHeight() {
+            const standalone = window.navigator.standalone ||
+                window.matchMedia('(display-mode: standalone)').matches;
+            if (!standalone) return visibleHeight();
+            const portrait = window.matchMedia('(orientation: portrait)').matches;
+            return portrait
+                ? Math.max(screen.width, screen.height)
+                : Math.min(screen.width, screen.height);
+        }
+
         function computeAppHeight() {
-            let h = window.innerHeight;
-            if (window.navigator.standalone) {
-                const portrait = window.matchMedia('(orientation: portrait)').matches;
-                const s = portrait
-                    ? Math.max(screen.width, screen.height)
-                    : Math.min(screen.width, screen.height);
-                h = Math.max(h, s);
-            }
-            root.style.setProperty('--app-h', h + 'px');
+            root.style.setProperty('--app-h', visibleHeight() + 'px');
         }
 
         function getSafeArea() {
             const cs = getComputedStyle(probe);
-            return {
-                top: parseFloat(cs.paddingTop) || 0,
-                bottom: parseFloat(cs.paddingBottom) || 0
-            };
+            const top = parseFloat(cs.paddingTop) || 0;
+            const rawBottom = parseFloat(cs.paddingBottom) || 0;
+            // Garantizar al menos 16px para que la barra flotante nunca toque el borde fisico
+            return { top, bottom: Math.max(rawBottom, 16) };
         }
 
         computeAppHeight();
